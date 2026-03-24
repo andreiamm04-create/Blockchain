@@ -831,10 +831,14 @@ export default function App() {
 
       if (ledgerError || analyticsError || mixError) {
         const err = ledgerError || analyticsError || mixError;
-        if (err?.code === 'PGRST116' || err?.message?.includes('relation') || err?.message?.includes('does not exist')) {
+        const msg = err?.message || 'Unknown error';
+        
+        if (msg.includes('Failed to fetch') || msg.includes('fetch')) {
+          setError('CONNECTION_ERROR: Could not connect to Supabase. Please ensure your VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are correctly set in the AI Studio Settings/Secrets menu.');
+        } else if (err?.code === 'PGRST116' || msg.includes('relation') || msg.includes('does not exist')) {
           setError('DATABASE_MIGRATION_REQUIRED: Please execute the supabase_migration.sql script in your Supabase SQL Editor.');
         } else {
-          setError(`DATABASE_ERROR: ${err?.message || 'Unknown error'}`);
+          setError(`DATABASE_ERROR: ${msg}`);
         }
         return;
       }
@@ -844,7 +848,12 @@ export default function App() {
       if (mix) setMarketMix(mix);
     } catch (err: any) {
       console.error('Error fetching data:', err);
-      setError(`SYSTEM_EXCEPTION: ${err.message || 'Failed to connect to database'}`);
+      const msg = err.message || 'Failed to connect to database';
+      if (msg.includes('Failed to fetch')) {
+        setError('CONNECTION_ERROR: Network request failed. Check your Supabase URL configuration in the Settings menu.');
+      } else {
+        setError(`SYSTEM_EXCEPTION: ${msg}`);
+      }
     } finally {
       setLoading(false);
     }
